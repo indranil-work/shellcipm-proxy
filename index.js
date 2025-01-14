@@ -52,6 +52,6 @@ https.createServer(options, app).listen(PORT, () => {
   console.log(`Auth0 proxy server running on port ${PORT}`);
 });
 */
-let server = app.listen(port, async function () {
+let server = app.listen(PORT, async function () {
     out.log("INFO", "Auth0 proxy server started", "Listening on port " + PORT);
 });
