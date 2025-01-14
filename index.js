@@ -17,6 +17,27 @@ const options = {
   cert: fs.readFileSync('cert.pem')
 };
 
+// Function to parse Akamai-User-Risk header
+const parseAkamaiRiskScore = (headerValue) => {
+  if (!headerValue) return null;
+  
+  // Split the header into key-value pairs
+  const pairs = headerValue.split(';').reduce((acc, pair) => {
+    const [key, value] = pair.split('=');
+    if (key && value) {
+      acc[key.trim()] = value.trim();
+    }
+    return acc;
+  }, {});
+  
+  // Get the score value and convert to number
+  if ('score' in pairs) {
+    return parseInt(pairs.score, 10);
+  }
+  
+  return null;
+};
+
 // Middleware to modify the authorize endpoint URL
 const modifyAuthorizeUrl = (proxyReq, req, res) => {
   if (req.url.startsWith('/authorize')) {
@@ -26,10 +47,22 @@ const modifyAuthorizeUrl = (proxyReq, req, res) => {
     // Log original URL for debugging
     console.log('Original URL:', originalUrl.toString());
     
-    // Add your custom parameters
+    // Get and parse Akamai risk score
+    const akamaiHeader = req.headers['akamai-user-risk'];
+    console.log('Akamai-User-Risk header:', akamaiHeader);
+    
+    const riskScore = parseAkamaiRiskScore(akamaiHeader);
+    console.log('Parsed risk score:', riskScore);
+    
+    // Add custom parameters
     originalUrl.searchParams.append('shell_param1', 'value1');
     originalUrl.searchParams.append('shell_param2', 'value2');
     originalUrl.searchParams.append('shell_client', 'proxy');
+    
+    // Add risk score if available
+    if (riskScore !== null) {
+      originalUrl.searchParams.append('shell-akamai-risk-score', riskScore.toString());
+    }
     
     // Update the request path with new parameters
     proxyReq.path = originalUrl.pathname + originalUrl.search;
